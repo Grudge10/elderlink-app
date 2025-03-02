@@ -1,80 +1,125 @@
-import React, { useState } from 'react';
-import Welcome from './Welcome';
-import RegistrationForm from './RegistrationForm';
-import Confirmation from './Confirmation';
-import Dashboard from './Dashboard';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-const ElderLink = () => {
-  const [userType, setUserType] = useState(null);
-  const [step, setStep] = useState('welcome');
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    interests: [],
-    availability: [],
-    needsHelp: []
-  });
+// Auth Components
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
+import VerifyEmail from './pages/auth/VerifyEmail';
 
-    // Common interests for matching
-    const interestOptions = [
-      'Reading', 'Gardening', 'Cooking', 'Music', 'Arts & Crafts', 
-      'History', 'Travel', 'Technology', 'Sports', 'Movies'
-    ];
+// Main App Components
+import Welcome from './pages/Welcome';
+import RegistrationForm from './pages/RegistrationForm';
+import Confirmation from './pages/Confirmation';
+import Dashboard from './pages/Dashboard';
+import Profile from './pages/Profile';
+import EditProfile from './pages/EditProfile';
+import VideoCall from './pages/VideoCall';
+import ScheduleCall from './pages/ScheduleCall';
+import ResourcesPage from './pages/ResourcesPage';
+import NotFound from './pages/NotFound';
+
+// Layout Components
+import MainLayout from './components/layouts/MainLayout';
+import AuthLayout from './components/layouts/AuthLayout';
+
+// Context
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ProfileProvider } from './contexts/ProfileContext';
+import { NotificationProvider } from './contexts/NotificationContext';
+
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const { currentUser, loading } = useAuth();
   
-    // Time slots for availability
-    const timeSlots = [
-      'Weekday Mornings', 'Weekday Afternoons', 'Weekday Evenings',
-      'Weekend Mornings', 'Weekend Afternoons', 'Weekend Evenings'
-    ];
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+    </div>;
+  }
   
-    // Help categories seniors might need
-    const helpCategories = [
-      'Technology Support', 'Companionship', 'Reading Assistance',
-      'App Navigation', 'Medical Portal Help', 'Online Shopping'
-    ];
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+};
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-  };
-
-  const handleCheckboxChange = (field, value) => {
-    if (formData[field].includes(value)) {
-      setFormData({
-        ...formData,
-        [field]: formData[field].filter(item => item !== value)
-      });
-    } else {
-      setFormData({
-        ...formData,
-        [field]: [...formData[field], value]
-      });
-    }
-  };
-
-  const renderCurrentStep = () => {
-    switch (step) {
-      case 'welcome':
-        return <Welcome setUserType={setUserType} setStep={setStep} />;
-      case 'register':
-        return <RegistrationForm userType={userType} formData={formData} handleInputChange={handleInputChange} handleCheckboxChange={handleCheckboxChange} setStep={setStep} interestOptions={interestOptions} timeSlots={timeSlots} helpCategories={helpCategories} />;
-      case 'confirmation':
-        return <Confirmation userType={userType} formData={formData} setStep={setStep} />;
-      case 'dashboard':
-        return <Dashboard userType={userType} formData={formData} />;
-      default:
-        return <Welcome setUserType={setUserType} setStep={setStep} />;
-    }
-  };
-
+const App = () => {
   return (
-    <div className="min-h-screen bg-gray-100">
-      {renderCurrentStep()}
-    </div>
+    <Router>
+      <AuthProvider>
+        <ProfileProvider>
+          <NotificationProvider>
+            <ToastContainer position="top-right" autoClose={3000} />
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<Welcome />} />
+              
+              {/* Auth Routes */}
+              <Route element={<AuthLayout />}>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/verify-email" element={<VerifyEmail />} />
+              </Route>
+              
+              {/* Protected Routes */}
+              <Route element={<MainLayout />}>
+                <Route path="/registration" element={
+                  <ProtectedRoute>
+                    <RegistrationForm />
+                  </ProtectedRoute>
+                } />
+                <Route path="/confirmation" element={
+                  <ProtectedRoute>
+                    <Confirmation />
+                  </ProtectedRoute>
+                } />
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/profile" element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                } />
+                <Route path="/edit-profile" element={
+                  <ProtectedRoute>
+                    <EditProfile />
+                  </ProtectedRoute>
+                } />
+                <Route path="/video-call/:id" element={
+                  <ProtectedRoute>
+                    <VideoCall />
+                  </ProtectedRoute>
+                } />
+                <Route path="/schedule-call" element={
+                  <ProtectedRoute>
+                    <ScheduleCall />
+                  </ProtectedRoute>
+                } />
+                <Route path="/resources" element={
+                  <ProtectedRoute>
+                    <ResourcesPage />
+                  </ProtectedRoute>
+                } />
+              </Route>
+              
+              {/* 404 Route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </NotificationProvider>
+        </ProfileProvider>
+      </AuthProvider>
+    </Router>
   );
 };
 
-export default ElderLink;
+export default App;
